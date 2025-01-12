@@ -19,7 +19,7 @@ import struct
 import sys
 import os
 
-chl_filename = 'sample.chl'
+default_chl_filename = 'sample.chl'
 
 modulation_scheme_name = {1: "8-VSB", 2: "16-VSB", 3: "256-QAM"}
 
@@ -64,14 +64,15 @@ def find_all_occurrences(f, pattern):
     data = f.read()
     f.seek(start, os.SEEK_SET)
 
+    found = True
     positions = []
-    while True:
+    while found:
         try:
             start = data.index(pattern, start)
             positions.append(start)
             start += len(pattern)
         except ValueError:
-            break
+            found = False
 
     return positions
 
@@ -132,7 +133,7 @@ def main_per_channel(chl_file, fpos_A):
     sys.stdout.write(",".join([str(i) for i in i_chl_numbers3]) + "\n")
 
 
-def main():
+def main(chl_filename):
     chl_file = open(chl_filename, 'rb')
     # Read the first 8 4-byte sequences (32 bytes) and unpack them into integers
     # @0 32b: 1048, 2, 39, 2, 2632, 664, 8
@@ -140,8 +141,9 @@ def main():
     # 39   --> I found 39 records in the file
     i_header = struct.unpack('8i', chl_file.read(32))  # '8i' means 8 integers
     
-    sys.stdout.write("Channel,MHZ,Digital Channel,Modulation Scheme,Name,Name2,Type,WIN32DEVICEID")
-    sys.stdout.write(",HN0,HN1,HN2,HN3")
+    sys.stdout.write("Channel,MHZ,Digital Channel,")
+    sys.stdout.write("Name,Name2,Type,WIN32DEVICEID,")
+    sys.stdout.write("HN0,HN1,HN2,HN3")
     for i in range(22):
         sys.stdout.write(",CN1_%d" % (i))
     for i in range(7):
@@ -162,4 +164,9 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    filenames = sys.argv[1:]
+    if len(filenames) <= 0:
+        filenames = [default_chl_filename]
+
+    for filename in filenames:
+        main(filename)
