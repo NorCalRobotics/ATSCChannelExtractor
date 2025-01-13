@@ -91,7 +91,7 @@ def find_all_occurrences(f, pattern):
     return positions
 
 
-def main_per_channel(chl_file, fpos_A):
+def main_per_channel(chl_file, fpos_A, next_fpos_A):
     # @1048 32b: 1, 1, 0, 1
     chl_file.seek(fpos_A, os.SEEK_SET) # Jump to position A
     i_chl_header = struct.unpack('4i', chl_file.read(16))
@@ -139,6 +139,13 @@ def main_per_channel(chl_file, fpos_A):
     sys.stdout.write("%s,%s,%s,%s," % (chl_name, chl_name2, chl_type, win32_dev))
     # HN0-HN3
     sys.stdout.write(",".join([str(i) for i in i_chl_header]) + ",")
+    # record_fpos, record_length
+    if next_fpos_A is None:
+        chl_file.seek(0, os.SEEK_END)
+        record_length = chl_file.tell() - fpos_A
+    else:
+        record_length = next_fpos_A - fpos_A
+    sys.stdout.write("%d,%d," % (fpos_A, record_length))
     # CN1_0-CN1_21
     sys.stdout.write(",".join([str(i) for i in i_chl_numbers1]) + ",")
     # CN2_0-CN2_6
@@ -157,7 +164,7 @@ def main(chl_filename):
     
     sys.stdout.write("Channel,mHz,Digital Channel,")
     sys.stdout.write("Name,Name2,Type,WIN32DEVICEID,")
-    sys.stdout.write("Sequence #,HN1,HN2,HN3")
+    sys.stdout.write("Sequence #,HN1,HN2,HN3,record_fpos,record_length")
 
     for i in range(22):
         label = "CN1_%d" % (i)
@@ -187,7 +194,8 @@ def main(chl_filename):
     chl_offsets = [ d_offset - a_to_d for d_offset in find_all_occurrences(chl_file, d_pattern) ]
     
     for fpos_A in chl_offsets:
-        main_per_channel(chl_file, fpos_A)
+        next_index = chl_offsets.index(fpos_A) + 1
+        main_per_channel(chl_file, fpos_A, chl_offsets[next_index] if next_index < len(chl_offsets) else None)
 
 
 if __name__ == '__main__':
