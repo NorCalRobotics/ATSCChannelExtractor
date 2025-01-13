@@ -34,7 +34,7 @@ identified_labels = {
     "CN1_17": "Digital Channel Number",
     "CN1_18": "Legacy Channel Number",
     "CN1_19": "Legacy Program Number",
-    "CN3_0": "Sequence #"
+    "CN2_0": "Sequence #"
 }
 
 # Target certain offsets based on analysis in hex editor:
@@ -44,7 +44,7 @@ a_to_c = 2108 - pos_a
 a_to_d = 2628 - pos_a
 a_to_e = 3148 - pos_a
 a_to_f = 3680 - pos_a
-a_to_g = 3786 - pos_a
+a_to_g = 3768 - pos_a
 a_to_h = 4288 - pos_a
 a_to_i = 4376 - pos_a
 
@@ -119,13 +119,13 @@ def main_per_channel(chl_file, fpos_A, next_fpos_A):
     dchl_num_s = str(i_chl_numbers1[17]) + '.' + str(i_chl_numbers1[16])
     mhz_s = str(float(i_chl_numbers1[1]) / 1000.0)
 
-    # @3786 16b: 75, 86, 73, 69, 72, 68
+    # @3768 u: KVIEHD
     chl_file.seek(fpos_A + a_to_g, os.SEEK_SET) # G
-    i_chl_numbers2 = struct.unpack('7h', chl_file.read(7 * 2))
+    chl_name3 = read_utf16_string(chl_file)
 
     # @4288 32b: 1, 0,0, 23, 0,0,0,0,0,0, 24
     chl_file.seek(fpos_A + a_to_h, os.SEEK_SET) # H
-    i_chl_numbers3 = struct.unpack('11i', chl_file.read(11 * 4))
+    i_chl_numbers2 = struct.unpack('22i', chl_file.read(22 * 4))
 
     # @4376: [0x05][0x04]AC-3[0x81][\n][0x08]1[0x05][0xFF][0x01][0xBF]eng[\n][0x04]eng[\0]
     # chl_file.seek(fpos_A + a_to_i, os.SEEK_SET)
@@ -136,7 +136,7 @@ def main_per_channel(chl_file, fpos_A, next_fpos_A):
     # Channel,MHZ,Digital
     sys.stdout.write("%s,%s,%s," % (chl_num_s, mhz_s, dchl_num_s))
     # Name,Name2,Type,WIN32DEVICEID
-    sys.stdout.write("%s,%s,%s,%s," % (chl_name, chl_name2, chl_type, win32_dev))
+    sys.stdout.write("%s,%s,%s,%s,%s," % (chl_name, chl_name2, chl_name3, chl_type, win32_dev))
     # HN0-HN3
     sys.stdout.write(",".join([str(i) for i in i_chl_header]) + ",")
     # record_fpos, record_length
@@ -148,10 +148,8 @@ def main_per_channel(chl_file, fpos_A, next_fpos_A):
     sys.stdout.write("%d,%d," % (fpos_A, record_length))
     # CN1_0-CN1_21
     sys.stdout.write(",".join([str(i) for i in i_chl_numbers1]) + ",")
-    # CN2_0-CN2_6
-    sys.stdout.write(",".join([str(i) for i in i_chl_numbers2]) + ",")
-    # CN3_0-CN3_10
-    sys.stdout.write(",".join([str(i) for i in i_chl_numbers3]) + "\n")
+    # CN2_0-CN2_21
+    sys.stdout.write(",".join([str(i) for i in i_chl_numbers2]) + "\n")
 
 
 def main(chl_filename):
@@ -163,7 +161,7 @@ def main(chl_filename):
     i_header = struct.unpack('8i', chl_file.read(32))  # '8i' means 8 integers
     
     sys.stdout.write("Channel,mHz,Digital Channel,")
-    sys.stdout.write("Name,Name2,Type,WIN32DEVICEID,")
+    sys.stdout.write("Name,Name2,Name3,Type,WIN32DEVICEID,")
     sys.stdout.write("Sequence #,HN1,HN2,HN3,record_fpos,record_length")
 
     for i in range(22):
@@ -172,14 +170,8 @@ def main(chl_filename):
             label = identified_labels[label]
         sys.stdout.write("," + label)
 
-    for i in range(7):
+    for i in range(22):
         label = "CN2_%d" % (i)
-        if label in identified_labels:
-            label = identified_labels[label]
-        sys.stdout.write("," + label)
-
-    for i in range(11):
-        label = "CN3_%d" % (i)
         if label in identified_labels:
             label = identified_labels[label]
         sys.stdout.write("," + label)
