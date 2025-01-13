@@ -22,6 +22,20 @@ import os
 default_chl_filename = 'sample.chl'
 
 modulation_scheme_name = {1: "8-VSB", 2: "16-VSB", 3: "256-QAM"}
+identified_labels = {
+    "CN1_1": "BroadcastFreq(kHz)",
+    "CN1_2": "Bandwidth(mHz)",
+    # These 3 are all still uncertain, but there's a strong chance that they are some kind of PID's
+    "CN1_3": "PID_A", # "VideoPID",
+    "CN1_4": "PID_B", # "PCR PID",
+    "CN1_5": "PID_C", # "AudioPID",
+    "CN1_15": "Digital TSID(FCC)",
+    "CN1_16": "Digital Program Number",
+    "CN1_17": "Digital Channel Number",
+    "CN1_18": "Legacy Channel Number",
+    "CN1_19": "Legacy Program Number",
+    "CN3_0": "Sequence #"
+}
 
 # Target certain offsets based on analysis in hex editor:
 pos_a = 1048
@@ -141,15 +155,28 @@ def main(chl_filename):
     # 39   --> I found 39 records in the file
     i_header = struct.unpack('8i', chl_file.read(32))  # '8i' means 8 integers
     
-    sys.stdout.write("Channel,MHZ,Digital Channel,")
+    sys.stdout.write("Channel,mHz,Digital Channel,")
     sys.stdout.write("Name,Name2,Type,WIN32DEVICEID,")
-    sys.stdout.write("HN0,HN1,HN2,HN3")
+    sys.stdout.write("Sequence #,HN1,HN2,HN3")
+
     for i in range(22):
-        sys.stdout.write(",CN1_%d" % (i))
+        label = "CN1_%d" % (i)
+        if label in identified_labels:
+            label = identified_labels[label]
+        sys.stdout.write("," + label)
+
     for i in range(7):
-        sys.stdout.write(",CN2_%d" % (i))
+        label = "CN2_%d" % (i)
+        if label in identified_labels:
+            label = identified_labels[label]
+        sys.stdout.write("," + label)
+
     for i in range(11):
-        sys.stdout.write(",CN3_%d" % (i))
+        label = "CN3_%d" % (i)
+        if label in identified_labels:
+            label = identified_labels[label]
+        sys.stdout.write("," + label)
+
     sys.stdout.write("\n")
     
     # Find offsets of all records in the file
