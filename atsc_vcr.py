@@ -19,6 +19,7 @@ import datetime
 import pytz
 import time
 import json
+import glob
 import os
 from atsc_channels import get_atsc_channel
 from adaptor_tuning import mux_pids, select_frequency, set_mux_pids
@@ -36,19 +37,38 @@ def start_recording(config: dict, schedule_entry: dict):
     call_ffmpeg(config, schedule_entry)
 
 
-def main():
-    from_zone = pytz.timezone(open('/etc/timezone', 'r').read().strip())
+def load_config():
     config_filename = "recording_schedule.json"
     config = json.load(open(config_filename, "r"))
     required_settings = ["channels_file", "adapter_id", "dvb_frontend_number", "dvb_demux_number", "schedule"]
     for key in required_settings:
         assert key in config
 
-    config["v4l_dev"] = os.path.realpath(os.readlink('/dev/v4l/by-id/%s-video-index0' % (config["adapter_id"])))
-    config["snd_dev"] = os.path.realpath(os.readlink('/dev/snd/by-id/%s-*' % (config["adapter_id"])))
-    dvb_dev_dir = os.path.realpath(os.readlink('/dev/dvb/by-id/%s-*' % (config["adapter_id"])))
+    v4l_wc = '/dev/v4l/by-id/%s*-video-index0' % (config["adapter_id"])
+    v4l_symlink = glob.glob(v4l_wc)[0]
+    config["v4l_dev"] = os.path.realpath(v4l_symlink)
+
+    snd_ctl_wc = '/dev/snd/by-id/%s*' % (config["adapter_id"])
+    snd_ctl_symlink = glob.glob(snd_ctl_wc)[0]
+    snd_ctl_dev = os.path.realpath(snd_ctl_symlink)
+    pcm_dev_wc = os.path.join(os.path.dirname(snd_ctl_dev), 'pcmC%sD*' % (snd_ctl_dev[-1]))
+    config["snd_dev"] = glob.glob(pcm_dev_wc)[0]
+
+    dvb_dev_dir_wc = '/dev/dvb/by-id/%s*' % (config["adapter_id"])
+    try:
+        dvb_dev_dir_symlink = glob.glob(dvb_dev_dir_wc)[0]
+        dvb_dev_dir = os.path.realpath(dvb_dev_dir_symlink)
+    except TypeError:
+        dvb_dev_dir = '/dev/dvb/adapter0'
     config["frontend_dev"] = os.path.join(dvb_dev_dir, 'frontend%d' % (config["dvb_frontend_number"]))
     config["demux_dev"] = os.path.join(dvb_dev_dir, 'demux%d' % (config["dvb_demux_number"]))
+
+    return config
+
+
+def main():
+    from_zone = pytz.timezone(open('/etc/timezone', 'r').read().strip())
+    config = load_config()
 
     running = True
     while running:

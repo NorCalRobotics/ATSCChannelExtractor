@@ -1,6 +1,6 @@
 {
   "channels_file": "sacramento.csv",
-  "adapter_id": "usb-Hauppauge_HVR-950",
+  "adapter_id": "usb-Hauppauge_WinTV_HVR-950",
   "dvb_frontend_number": 0,
   "dvb_demux_number": 0,
   "resolution": "1920x1080",
