@@ -18,9 +18,6 @@
 import datetime
 import pytz
 import sys
-from atsc_channels import get_atsc_channel
-from adaptor_tuning import mux_pids, select_frequency, set_mux_pids
-from ffmpeg_v4l_record import call_ffmpeg
 from atsc_vcr import load_config, start_recording
 
 
@@ -30,9 +27,18 @@ def main():
 
     schedule = dict()
     schedule['datetime'] = datetime.datetime.now(from_zone)
-    schedule["channel_id"] = '6-1' if len(sys.argv < 1) else sys.argv[1]
-    schedule["duration_minutes"] = 60 if len(sys.argv) < 2 else int(sys.argv[2])
-    schedule["description"] = '' if len(sys.argv) < 3 else sys.argv[3]
+    try:
+        schedule["channel_id"] = sys.argv[1]
+    except IndexError:
+        schedule["channel_id"] = '6-1'
+    try:
+        schedule["duration_minutes"] = int(sys.argv[2])
+    except IndexError:
+        schedule["duration_minutes"] = 1
+    try:
+        schedule["description"] = sys.argv[3]
+    except IndexError:
+        schedule["description"] = ''
 
     start_recording(config, schedule)
 

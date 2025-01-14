@@ -22,19 +22,18 @@ import json
 import glob
 import os
 from atsc_channels import get_atsc_channel
-from adaptor_tuning import mux_pids, select_frequency, set_mux_pids
-from ffmpeg_v4l_record import call_ffmpeg
+from adaptor_tuning import mux_pids, tune_to_atsc_channel
+from v4l_record import v4l2_record_a_v_sep
 
 
 def start_recording(config: dict, schedule_entry: dict):
     info_fmt = "Starting recording on channel %s for %d minutes. Description: %s"
     print(info_fmt % (schedule_entry["channel_id"], schedule_entry["duration_minutes"], schedule_entry["description"]))
 
-    channel_data = get_atsc_channel(config["channels_filename"], schedule_entry["channel_id"])
-    select_frequency(config["frontend_dev_filename"], channel_data.BroadcastFreqkHz)
+    channel_data = get_atsc_channel(config["channels_file"], schedule_entry["channel_id"])
     pids = mux_pids(channel_data.PID_A, channel_data.PID_B, channel_data.PID_C)
-    set_mux_pids(config["demux_dev_filename"], pids)
-    call_ffmpeg(config, schedule_entry)
+    tune_to_atsc_channel(config["frontend_dev"], channel_data.BroadcastFreqkHz, config["demux_dev"], pids)
+    v4l2_record_a_v_sep(config, schedule_entry)
 
 
 def load_config():
@@ -50,7 +49,7 @@ def load_config():
 
     snd_ctl_wc = '/dev/snd/by-id/%s*' % (config["adapter_id"])
     snd_ctl_symlink = glob.glob(snd_ctl_wc)[0]
-    snd_ctl_dev = os.path.realpath(snd_ctl_symlink)
+    config["snd_ctl_dev"] = snd_ctl_dev = os.path.realpath(snd_ctl_symlink)
     pcm_dev_wc = os.path.join(os.path.dirname(snd_ctl_dev), 'pcmC%sD*' % (snd_ctl_dev[-1]))
     config["snd_dev"] = glob.glob(pcm_dev_wc)[0]
 
@@ -59,6 +58,8 @@ def load_config():
         dvb_dev_dir_symlink = glob.glob(dvb_dev_dir_wc)[0]
         dvb_dev_dir = os.path.realpath(dvb_dev_dir_symlink)
     except TypeError:
+        dvb_dev_dir = '/dev/dvb/adapter0'
+    except IndexError:
         dvb_dev_dir = '/dev/dvb/adapter0'
     config["frontend_dev"] = os.path.join(dvb_dev_dir, 'frontend%d' % (config["dvb_frontend_number"]))
     config["demux_dev"] = os.path.join(dvb_dev_dir, 'demux%d' % (config["dvb_demux_number"]))
