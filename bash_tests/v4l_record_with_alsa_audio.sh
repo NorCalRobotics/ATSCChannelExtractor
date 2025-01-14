@@ -15,8 +15,6 @@
 #
 # Author: Gabriel Field
 
-V4L_VFMT="width=${WIDTH:-640},height=${HEIGHT:-480},pixelformat=YUYV"
-
 export VIDEO_FILE=video_pipe
 export AUDIO_FILE=audio_pipe
 

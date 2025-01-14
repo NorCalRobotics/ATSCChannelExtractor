@@ -4,7 +4,8 @@
   "alsa_card": "HVR950Q",
   "dvb_frontend_number": 0,
   "dvb_demux_number": 0,
-  "resolution": "1920x1080",
+  "#resolution": "1920x1080",
+  "resolution": "720x480",
   "fps": "60",
   "bitrate": "8M",
   "schedule": [
